@@ -33,7 +33,17 @@ const poolConfig: any = process.env.DATABASE_URL
       database: 'myapp',
     };
 
+console.log('[Storage] Initializing database pool with config:', {
+  hasConnectionString: !!process.env.DATABASE_URL,
+  connectionStringPrefix: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 30) + '...' : 'none',
+  useLocalDefaults: !process.env.DATABASE_URL,
+});
+
 const pool = new Pool(poolConfig);
+
+pool.on('error', (err) => {
+  console.error('[Storage] Unexpected error on idle client:', err);
+});
 
 export const db = drizzle(pool);
 
