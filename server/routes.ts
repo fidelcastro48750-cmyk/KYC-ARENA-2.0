@@ -60,22 +60,29 @@ export async function registerRoutes(
   app.post("/api/auth/login", (req, res, next) => {
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) {
-        return res.status(500).json({ error: "Internal server error" });
+        console.error("Authentication error:", err);
+        return res.status(500).json({ error: "Authentication failed", details: err.message });
       }
       if (!user) {
+        console.warn("Login failed - user not found:", info);
         return res.status(401).json({ error: info?.message || "Invalid credentials" });
       }
+      
+      console.log("Authentication successful for user:", user.username);
       
       // Logout any existing user first to prevent session carryover
       req.logout((logoutErr) => {
         if (logoutErr) {
+          console.error("Logout error:", logoutErr);
           return res.status(500).json({ error: "Session cleanup failed" });
         }
         
         req.login(user, (loginErr) => {
           if (loginErr) {
-            return res.status(500).json({ error: "Login failed" });
+            console.error("Login error:", loginErr);
+            return res.status(500).json({ error: "Login failed", details: loginErr.message });
           }
+          console.log("Session established for user:", user.username);
           res.json({ user: { id: user.id, username: user.username, role: user.role } });
         });
       });

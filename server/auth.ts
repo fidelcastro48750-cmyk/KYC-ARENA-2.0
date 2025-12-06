@@ -52,24 +52,33 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        console.log("Attempting login for username:", username);
         const user = await storage.getUserByUsername(username);
+        
         if (!user) {
+          console.warn("User not found:", username);
           return done(null, false, { message: "Invalid username or password" });
         }
 
+        console.log("User found:", { id: user.id, username: user.username, role: user.role });
+
         // Check if user is banned (deleted or disabled)
         if (user.isDeleted || !user.isEnabled) {
+          console.warn("User is disabled/deleted:", username);
           return done(null, false, { message: "You have been banned from using this platform" });
         }
 
         // Direct password comparison for demo
         // In production, use bcrypt.compare(password, user.password)
         if (password !== user.password) {
+          console.warn("Password mismatch for user:", username);
           return done(null, false, { message: "Invalid username or password" });
         }
 
+        console.log("Authentication successful for:", username);
         return done(null, user);
       } catch (err) {
+        console.error("Authentication strategy error:", err);
         return done(err);
       }
     })
