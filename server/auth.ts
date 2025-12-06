@@ -4,21 +4,45 @@ import { storage } from "./storage";
 import { type Express } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import pgSession from "connect-pg-simple";
+import { Pool } from "pg";
 import type { User } from "@shared/schema";
 
 const MemoryStore = createMemoryStore(session);
+const PgSession = pgSession(session);
 
 export function setupAuth(app: Express) {
+  // Determine which store to use based on environment
+  let store: any;
+  
+  if (process.env.DATABASE_URL && process.env.NODE_ENV === "production") {
+    // Use PostgreSQL session store in production
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+    });
+    
+    store = new PgSession({
+      pool: pool,
+      tableName: "session",
+      createTableIfMissing: true,
+    });
+  } else {
+    // Use memory store for development
+    store = new MemoryStore({
+      checkPeriod: 86400000, // 24 hours
+    });
+  }
+
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "secure-verify-secret-key-change-in-production",
     resave: false,
     saveUninitialized: false,
     cookie: {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      secure: process.env.NODE_ENV === "production", // HTTPS only in production
+      sameSite: "lax",
     },
-    store: new MemoryStore({
-      checkPeriod: 86400000, // 24 hours
-    }),
+    store: store,
   };
 
   app.use(session(sessionSettings));
