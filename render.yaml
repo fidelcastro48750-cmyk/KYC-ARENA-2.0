@@ -6,7 +6,7 @@ services:
     # Ensure devDependencies (vite, tsx, etc.) are installed during build
     # Some CI/build environments set NODE_ENV=production which causes npm to skip devDependencies.
     # Force install to include devDependencies during the build step.
-    buildCommand: NPM_CONFIG_PRODUCTION=false npm install && npm run build && npm run setup-admin
+  buildCommand: NPM_CONFIG_PRODUCTION=false npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
