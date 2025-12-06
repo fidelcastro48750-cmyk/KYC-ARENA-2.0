@@ -57,11 +57,17 @@ export async function registerRoutes(
     }
   });
 
-  // Setup endpoint for initial admin user (first-time only)
-  app.post("/api/auth/setup-admin", async (req, res) => {
+  // Setup endpoint for initial admin user (one-time setup)
+  app.post("/api/setup", async (req, res) => {
     try {
-      const { username } = req.body;
+      const { username, token } = req.body;
       
+      // Require setup token (can be empty on first run)
+      const setupToken = process.env.SETUP_TOKEN || "setup-token-123";
+      if (token !== setupToken) {
+        return res.status(401).json({ error: "Invalid or missing setup token" });
+      }
+
       if (!username) {
         return res.status(400).json({ error: "Username required" });
       }
@@ -71,7 +77,7 @@ export async function registerRoutes(
       const adminExists = allUsers.some(u => u.role === "admin");
 
       if (adminExists) {
-        return res.status(403).json({ error: "Admin user already exists" });
+        return res.status(403).json({ error: "Admin already exists - setup completed" });
       }
 
       // Find the user and promote to admin
@@ -92,9 +98,17 @@ export async function registerRoutes(
         .returning();
 
       console.log(`✅ Promoted ${username} to admin`);
-      res.json({ success: true, user: { id: updatedUser[0].id, username: updatedUser[0].username, role: updatedUser[0].role } });
+      res.json({ 
+        success: true, 
+        message: `${username} is now admin`,
+        user: { 
+          id: updatedUser[0].id, 
+          username: updatedUser[0].username, 
+          role: updatedUser[0].role 
+        } 
+      });
     } catch (error) {
-      console.error("Setup admin error:", error);
+      console.error("Setup error:", error);
       res.status(500).json({ error: "Failed to setup admin" });
     }
   });

@@ -13,8 +13,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "setup-admin": "npx tsx scripts/setup_admin.ts",
-    "check-admin": "npx tsx scripts/check_admin.ts",
-    "promote-admin": "npx tsx scripts/promote_to_admin.ts"
+    "check-admin": "npx tsx scripts/check_admin.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
