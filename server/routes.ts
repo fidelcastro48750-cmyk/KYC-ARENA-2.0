@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage, db } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin } from "./auth";
 import passport from "passport";
-import { insertUserSchema, insertSubmissionSchema, insertExchangeSchema } from "@shared/schema";
+import { insertUserSchema, insertSubmissionSchema, insertExchangeSchema, users } from "@shared/schema";
 import { z } from "zod";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -54,6 +54,48 @@ export async function registerRoutes(
         return res.status(400).json({ error: error.errors });
       }
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Setup endpoint for initial admin user (first-time only)
+  app.post("/api/auth/setup-admin", async (req, res) => {
+    try {
+      const { username } = req.body;
+      
+      if (!username) {
+        return res.status(400).json({ error: "Username required" });
+      }
+
+      // Check if any admins exist
+      const allUsers = await storage.getAllUsers();
+      const adminExists = allUsers.some(u => u.role === "admin");
+
+      if (adminExists) {
+        return res.status(403).json({ error: "Admin user already exists" });
+      }
+
+      // Find the user and promote to admin
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Update role to admin
+      const updatedUser = await db
+        .update(users)
+        .set({ 
+          role: "admin",
+          isApproved: true,
+          isEnabled: true,
+        })
+        .where(eq(users.id, user.id))
+        .returning();
+
+      console.log(`✅ Promoted ${username} to admin`);
+      res.json({ success: true, user: { id: updatedUser[0].id, username: updatedUser[0].username, role: updatedUser[0].role } });
+    } catch (error) {
+      console.error("Setup admin error:", error);
+      res.status(500).json({ error: "Failed to setup admin" });
     }
   });
 
