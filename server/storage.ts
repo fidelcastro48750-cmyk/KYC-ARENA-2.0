@@ -32,12 +32,35 @@ const poolConfig: any = process.env.DATABASE_URL
       port: 5432,
       database: 'myapp',
     };
+// If a connection string is provided, parse and surface the host (masked)
+if (process.env.DATABASE_URL) {
+  try {
+    const parsed = new URL(process.env.DATABASE_URL);
+    const host = parsed.hostname;
+    const user = parsed.username || '***';
+    const dbname = parsed.pathname?.slice(1) || '***';
 
-console.log('[Storage] Initializing database pool with config:', {
-  hasConnectionString: !!process.env.DATABASE_URL,
-  connectionStringPrefix: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 30) + '...' : 'none',
-  useLocalDefaults: !process.env.DATABASE_URL,
-});
+    console.log('[Storage] Initializing database pool with config:', {
+      hasConnectionString: true,
+      // mask to avoid leaking secrets in logs
+      masked: `${user}@${host}/${dbname}`,
+      useLocalDefaults: false,
+    });
+
+    // If the host is obviously wrong (common mistake), fail fast with clear guidance
+    if (host === 'base') {
+      console.error('[Storage] ERROR: DATABASE_URL contains an invalid host "base".');
+      console.error('[Storage] If you set a manual DATABASE_URL env var in Render, remove it so the service can use the database from Render dashboard (fromDatabase).');
+      console.error('[Storage] Alternatively, correct the host portion of your DATABASE_URL to the proper Render DB host.');
+      // Exit so the service doesn't repeatedly log confusing errors
+      process.exit(1);
+    }
+  } catch (err) {
+    // If parsing fails, still attempt to initialize and log minimal info
+    console.warn('[Storage] Warning: failed to parse DATABASE_URL for diagnostics', String(err));
+    console.log('[Storage] Initializing database pool with config: { hasConnectionString: true, masked: "(unable to parse)" }');
+  }
+}
 
 const pool = new Pool(poolConfig);
 
