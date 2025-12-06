@@ -524,5 +524,47 @@ export async function registerRoutes(
     });
   });
 
+  // Diagnostic endpoint to help debug issues
+  app.get("/api/health/debug", async (req, res) => {
+    try {
+      // Check if Kai user exists
+      const kaiUser = await storage.getUserByUsername("Kai");
+      const allUsers = await storage.getAllUsers();
+      
+      res.json({
+        status: "ok",
+        database: "connected",
+        kaiUserExists: !!kaiUser,
+        kaiUser: kaiUser ? {
+          id: kaiUser.id,
+          username: kaiUser.username,
+          role: kaiUser.role,
+          isEnabled: kaiUser.isEnabled,
+          isDeleted: kaiUser.isDeleted,
+          isApproved: kaiUser.isApproved,
+        } : null,
+        totalUsers: allUsers.length,
+        allUsers: allUsers.map(u => ({
+          id: u.id,
+          username: u.username,
+          role: u.role,
+          isEnabled: u.isEnabled,
+          isDeleted: u.isDeleted,
+        })),
+        environment: {
+          nodeEnv: process.env.NODE_ENV,
+          hasDatabase: !!process.env.DATABASE_URL,
+          hasSessionSecret: !!process.env.SESSION_SECRET,
+        }
+      });
+    } catch (err: any) {
+      res.status(500).json({
+        status: "error",
+        message: err.message,
+        error: err.toString(),
+      });
+    }
+  });
+
   return httpServer;
 }
