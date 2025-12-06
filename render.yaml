@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: kyc-arena
+    plan: free
+    env: node
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kyc-arena-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+
+databases:
+  - name: kyc-arena-db
+    plan: free
+    postgresVersion: 16
