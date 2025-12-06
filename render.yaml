@@ -3,7 +3,7 @@ services:
     name: kyc-arena
     plan: free
     env: node
-    buildCommand: npm run build
+    buildCommand: npm run build && npm run setup-admin
     startCommand: npm start
     envVars:
       - key: NODE_ENV
