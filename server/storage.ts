@@ -22,33 +22,16 @@ import {
 
 const { Pool } = pg;
 
-// Parse DATABASE_URL to extract credentials if provided as connection string
-const dbUrl = process.env.DATABASE_URL;
-let poolConfig: any = {};
-
-if (dbUrl) {
-  try {
-    const url = new URL(dbUrl);
-    poolConfig = {
-      user: url.username || 'postgres',
-      password: url.password || undefined,
-      host: url.hostname || 'localhost',
-      port: url.port ? parseInt(url.port) : 5432,
-      database: url.pathname?.slice(1) || 'myapp',
+// Use DATABASE_URL directly if provided, otherwise use local defaults
+const poolConfig: any = process.env.DATABASE_URL
+  ? { connectionString: process.env.DATABASE_URL }
+  : {
+      user: 'postgres',
+      password: 'postgres',
+      host: 'localhost',
+      port: 5432,
+      database: 'myapp',
     };
-  } catch (e) {
-    // Fallback to connection string if URL parsing fails
-    poolConfig = { connectionString: dbUrl };
-  }
-} else {
-  poolConfig = {
-    user: 'postgres',
-    password: 'postgres',
-    host: 'localhost',
-    port: 5432,
-    database: 'myapp',
-  };
-}
 
 const pool = new Pool(poolConfig);
 
