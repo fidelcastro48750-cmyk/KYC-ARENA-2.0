@@ -21,10 +21,23 @@ export function setupAuth(app: Express) {
       connectionString: process.env.DATABASE_URL,
     });
     
+    // Create session table if it doesn't exist
+    pool.query(`
+      CREATE TABLE IF NOT EXISTS "session" (
+        "sid" varchar NOT NULL COLLATE "default",
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        PRIMARY KEY ("sid")
+      );
+      CREATE INDEX IF NOT EXISTS "IDX_session_expire" on "session" ("expire");
+    `).catch(err => {
+      console.error("[Auth] Error creating session table:", err);
+    });
+    
     store = new PgSession({
       pool: pool,
       tableName: "session",
-      createTableIfMissing: true,
+      createTableIfMissing: false, // We create it manually above
     });
   } else {
     // Use memory store for development
